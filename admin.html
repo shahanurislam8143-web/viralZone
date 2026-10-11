@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ভিডিও ফ্লিক্স - অ্যাডমিন প্যানেল</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-color: #ef4444;
+            --success-color: #10b981;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding: 20px; }
+        
+        h2 { margin-bottom: 20px; color: var(--accent-color); border-bottom: 2px solid #334155; padding-bottom: 10px; }
+        .section { background: var(--card-bg); padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .section h3 { margin-bottom: 15px; font-size: 18px; }
+        
+        input, textarea, select { width: 100%; padding: 10px; background: #334155; border: none; color: white; border-radius: 4px; margin-bottom: 12px; }
+        button { background: var(--success-color); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        button.danger { background: var(--accent-color); }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; font-size: 14px; }
+        th { background: #334155; }
+    </style>
+</head>
+<body>
+
+    <h2>⚙️ VideoFlix Admin Dashboard</h2>
+
+    <!-- ১. পেমেন্ট রিকোয়েস্ট ম্যানেজমেন্ট -->
+    <div class="section">
+        <h3>💰 ইউজার পেমেন্ট রিকোয়েস্ট (প্যাকেজ অনুযায়ী অ্যাপ্রুভ)</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>ইউজার নম্বর</th>
+                    <th>TrxID</th>
+                    <th>প্যাকেজ</th>
+                    <th>অ্যাকশন</th>
+                </tr>
+            </thead>
+            <tbody id="adminPaymentTable"></tbody>
+        </table>
+    </div>
+
+    <!-- ২. ভিডিও আপলোড সিস্টেম -->
+    <div class="section">
+        <h3>📤 নতুন ভিডিও আপলোড করুন</h3>
+        <input type="text" id="vidTitle" placeholder="ভিডিওর শিরোনাম">
+        <select id="vidCategory">
+            <option value="viral">ভাইরাল ভিডিও</option>
+            <option value="trending">ট্রেণ্ডি ভিডিও</option>
+            <option value="new">নতুন ভিডিও</option>
+        </select>
+        <input type="text" id="vidThumb" placeholder="থাম্বনেইল ইমেজ লিংক (URL)">
+        <input type="text" id="vidUrl" placeholder="ভিডিওর লিংক (.mp4 বা স্ট্রিম লিংক)">
+        <button onclick="uploadVideo()">ভিডিও পাবলিশ করুন</button>
+    </div>
+
+    <!-- ৩. পেমেন্ট নম্বর পরিবর্তন -->
+    <div class="section">
+        <h3>💳 পেমেন্ট নম্বর পরিবর্তন</h3>
+        <label>বিকাশ/নগদ নম্বর:</label>
+        <input type="text" id="bkashNumber" value="01700-000000">
+        <button onclick="saveSettings()">পেমেন্ট নম্বর সেভ করুন</button>
+    </div>
+
+    <!-- ৪. অ্যাড কোড ম্যানেজমেন্ট -->
+    <div class="section">
+        <h3>📢 অ্যাডস কোড ম্যানেজমেন্ট (AdMob / Monetag HTML Script)</h3>
+        <textarea id="adScript" rows="4" placeholder="এখানে আপনার Monetag বা AdMob Script কোড পেস্ট করুন"></textarea>
+        <button onclick="saveAds()">অ্যাড কোড আপডেট করুন</button>
+    </div>
+
+    <script>
+        function renderPendingPayments() {
+            const tableBody = document.getElementById('adminPaymentTable');
+            tableBody.innerHTML = '';
+            let pendingPayments = JSON.parse(localStorage.getItem('pendingPayments')) || [];
+
+            if(pendingPayments.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-muted);">কোনো নতুন পেমেন্ট রিকোয়েস্ট নেই</td></tr>`;
+                return;
+            }
+
+            pendingPayments.forEach((item, index) => {
+                let planName = item.months == '1' ? '১ মাস (১০০৳)' : (item.months == '5' ? '৫ মাস (৩০০৳)' : '১ বছর (১০০০৳)');
+                tableBody.innerHTML += `
+                    <tr>
+                        <td>${item.phone}</td>
+                        <td>${item.trx}</td>
+                        <td><b>${planName}</b></td>
+                        <td>
+                            <button onclick="approvePayment(${index}, '${item.phone}', ${item.months})">অ্যাপ্রুভ</button>
+                            <button class="danger" onclick="cancelPayment(${index})">ক্যান্সেল</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // ইউজার যে কয় মাস সিলেক্ট করেছে সেই অনুযায়ী মেয়াদ হিসাব করে সেট করা
+        function approvePayment(index, phone, months) {
+            let pendingPayments = JSON.parse(localStorage.getItem('pendingPayments')) || [];
+            
+            // মাস অনুযায়ী মিলিসেকেন্ড হিসাব (৩০ দিন = ১ মাস ধরে)
+            const totalDays = parseInt(months) * 30;
+            const expiryTimestamp = new Date().getTime() + (totalDays * 24 * 60 * 60 * 1000);
+            
+            localStorage.setItem('isVip', 'true');
+            localStorage.setItem('vipExpiryDate', expiryTimestamp);
+            localStorage.setItem('vipUserPhone', phone);
+
+            pendingPayments.splice(index, 1);
+            localStorage.setItem('pendingPayments', JSON.stringify(pendingPayments));
+
+            alert(`নম্বর ${phone}-এর জন্য ${months} মাসের সাবস্ক্রিপশন সফলভাবে সক্রিয় করা হয়েছে!`);
+            renderPendingPayments();
+        }
+
+        function cancelPayment(index) {
+            let pendingPayments = JSON.parse(localStorage.getItem('pendingPayments')) || [];
+            pendingPayments.splice(index, 1);
+            localStorage.setItem('pendingPayments', JSON.stringify(pendingPayments));
+            alert("পেমেন্ট রিকোয়েস্ট বাতিল করা হয়েছে।");
+            renderPendingPayments();
+        }
+
+        function uploadVideo() {
+            const title = document.getElementById('vidTitle').value;
+            const category = document.getElementById('vidCategory').value;
+            const thumb = document.getElementById('vidThumb').value;
+            const url = document.getElementById('vidUrl').value;
+
+            if(title && url) {
+                let videos = JSON.parse(localStorage.getItem('siteVideos')) || [
+                    { id: 1, title: "অসাধারণ একটি ভাইরাল মুহূর্ত!", category: "viral", thumb: "https://via.placeholder.com/400x200", url: "https://www.w3schools.com/html/mov_bbb.mp4" },
+                    { id: 2, title: "আজকের সেরা ট্রেণ্ডি ক্লিপ", category: "trending", thumb: "https://via.placeholder.com/400x200", url: "https://www.w3schools.com/html/mov_bbb.mp4" },
+                    { id: 3, title: "নতুন প্রকাশিত শর্ট ফিল্ম", category: "new", thumb: "https://via.placeholder.com/400x200", url: "https://www.w3schools.com/html/mov_bbb.mp4" }
+                ];
+
+                videos.unshift({ id: Date.now(), title, category, thumb: thumb || 'https://via.placeholder.com/400x200', url });
+                localStorage.setItem('siteVideos', JSON.stringify(videos));
+                alert("সফলভাবে নতুন ভিডিও পাবলিশ করা হয়েছে!");
+                document.getElementById('vidTitle').value = '';
+                document.getElementById('vidThumb').value = '';
+                document.getElementById('vidUrl').value = '';
+            } else {
+                alert("দয়া করে ভিডিওর শিরোনাম এবং ভিডিও লিংক দিন।");
+            }
+        }
+
+        function saveSettings() {
+            const bkash = document.getElementById('bkashNumber').value;
+            localStorage.setItem('bkashNum', bkash);
+            alert("পেমেন্ট নম্বর আপডেট সফল হয়েছে!");
+        }
+
+        function saveAds() {
+            const adCode = document.getElementById('adScript').value;
+            localStorage.setItem('customAdCode', adCode);
+            alert("অ্যাড কোড সফলভাবে আপডেট করা হয়েছে!");
+        }
+
+        renderPendingPayments();
+    </script>
+</body>
+</html>
