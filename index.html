@@ -1,631 +1,263 @@
 <!DOCTYPE html>
 <html lang="bn">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title id="site-title">VideoHub</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0a0a0f;
-    --surface: #13131a;
-    --surface2: #1c1c28;
-    --border: #2a2a3a;
-    --accent: #ff3c5f;
-    --accent2: #ff7043;
-    --text: #f0f0f8;
-    --muted: #7a7a9a;
-    --nav-h: 60px;
-    --radius: 12px;
-    --font-head: 'Bebas Neue', sans-serif;
-    --font-body: 'DM Sans', sans-serif;
-  }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ভিডিও ফ্লিক্স - Video Streaming</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-color: #ef4444;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding-bottom: 70px; }
+        
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px; background: var(--card-bg); position: sticky; top: 0; z-index: 100;
+        }
+        .logo { font-size: 20px; font-weight: bold; color: var(--accent-color); }
+        .sub-btn { background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .badge-vip { background: #f59e0b; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; display: none; }
 
-  /* THEME VARIABLES - overridden by admin */
-  body.theme-ocean { --accent:#00b4d8; --accent2:#48cae4; --bg:#050d1a; --surface:#0a1628; --surface2:#0f2040; }
-  body.theme-purple { --accent:#a855f7; --accent2:#c084fc; --bg:#0d0814; --surface:#160c22; --surface2:#1e1030; }
-  body.theme-green { --accent:#22c55e; --accent2:#4ade80; --bg:#050f09; --surface:#0a1a10; --surface2:#0f2416; }
-  body.theme-gold { --accent:#f59e0b; --accent2:#fbbf24; --bg:#0f0d05; --surface:#1a1608; --surface2:#24200e; }
-  body.theme-pink { --accent:#ec4899; --accent2:#f472b6; --bg:#0f060d; --surface:#1a0c18; --surface2:#241020; }
-  body.theme-cyan { --accent:#06b6d4; --accent2:#22d3ee; --bg:#050c10; --surface:#091620; --surface2:#0d202e; }
-  body.theme-orange { --accent:#f97316; --accent2:#fb923c; --bg:#100806; --surface:#1c100a; --surface2:#26160e; }
-  body.theme-white { --accent:#3b82f6; --accent2:#60a5fa; --bg:#f0f0f8; --surface:#ffffff; --surface2:#e8e8f5; --border:#d0d0e0; --text:#111128; --muted:#6666aa; }
-  body.theme-neon { --accent:#00ff88; --accent2:#00ffcc; --bg:#020a06; --surface:#041208; --surface2:#061a0c; }
-  body.theme-blood { --accent:#dc2626; --accent2:#ef4444; --bg:#0a0505; --surface:#160808; --surface2:#200c0c; }
+        .categories {
+            display: flex; gap: 10px; padding: 15px 20px; overflow-x: auto; background: var(--card-bg);
+            white-space: nowrap; scrollbar-width: none;
+        }
+        .categories::-webkit-scrollbar { display: none; }
+        .cat-chip { background: style="#334155"; color: var(--text-color); padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 14px; }
+        .cat-chip.active { background: var(--accent-color); }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
+        .video-container { padding: 15px; display: grid; grid-template-columns: 1fr; gap: 15px; }
+        .video-card { background: var(--card-bg); border-radius: 8px; overflow: hidden; cursor: pointer; }
+        .thumbnail { width: 100%; height: 180px; background: #334155; object-fit: cover; }
+        .video-info { padding: 10px; }
+        .video-title { font-size: 16px; font-weight: 500; margin-bottom: 5px; }
+        .video-meta { font-size: 12px; color: var(--text-muted); }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-body);
-    min-height: 100vh;
-    transition: background 0.4s, color 0.4s;
-  }
-
-  /* NAV */
-  nav {
-    position: sticky; top: 0; z-index: 100;
-    height: var(--nav-h);
-    background: rgba(10,10,15,0.92);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; gap: 12px;
-    padding: 0 20px;
-  }
-  .nav-logo {
-    font-family: var(--font-head);
-    font-size: 1.8rem;
-    letter-spacing: 2px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    flex: 1;
-    cursor: pointer;
-  }
-  .nav-search {
-    flex: 2; max-width: 400px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 50px;
-    padding: 8px 16px;
-    color: var(--text);
-    font-family: var(--font-body);
-    font-size: 0.9rem;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  .nav-search:focus { border-color: var(--accent); }
-  .nav-search::placeholder { color: var(--muted); }
-
-  /* BANNER AD */
-  #banner-ad-zone {
-    width: 100%; overflow: hidden;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    min-height: 0;
-    transition: all 0.3s;
-    display: flex; justify-content: center; align-items: center;
-    padding: 0;
-  }
-
-  /* MAIN */
-  main {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 24px 20px 60px;
-  }
-
-  .section-header {
-    display: flex; align-items: center; gap: 12px;
-    margin-bottom: 20px;
-  }
-  .section-header h2 {
-    font-family: var(--font-head);
-    font-size: 1.6rem;
-    letter-spacing: 1px;
-    color: var(--text);
-  }
-  .section-line {
-    flex: 1; height: 1px;
-    background: linear-gradient(to right, var(--accent), transparent);
-  }
-
-  /* GRID */
-  .video-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
-  }
-
-  /* CARD */
-  .video-card {
-    background: var(--surface);
-    border-radius: var(--radius);
-    overflow: hidden;
-    border: 1px solid var(--border);
-    cursor: pointer;
-    transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
-    position: relative;
-  }
-  .video-card:hover {
-    transform: translateY(-4px);
-    border-color: var(--accent);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.4), 0 0 0 1px var(--accent)22;
-  }
-
-  .thumb-wrap {
-    position: relative;
-    aspect-ratio: 16/9;
-    overflow: hidden;
-    background: var(--surface2);
-  }
-  .thumb-wrap img {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    transition: transform 0.4s;
-  }
-  .video-card:hover .thumb-wrap img { transform: scale(1.05); }
-
-  /* TIME BADGE */
-  .time-badge {
-    position: absolute;
-    bottom: 8px; right: 8px;
-    background: rgba(0,0,0,0.85);
-    color: #fff;
-    font-size: 0.72rem;
-    font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 4px;
-    letter-spacing: 0.5px;
-    pointer-events: none;
-  }
-
-  /* PLAY BUTTON */
-  .play-btn {
-    position: absolute;
-    inset: 0;
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0;
-    transition: opacity 0.25s;
-    background: rgba(0,0,0,0.3);
-  }
-  .video-card:hover .play-btn { opacity: 1; }
-  .play-icon {
-    width: 56px; height: 56px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 4px 20px var(--accent)66;
-    transition: transform 0.2s;
-  }
-  .play-icon:hover { transform: scale(1.1); }
-  .play-icon svg { width: 22px; height: 22px; fill: white; margin-left: 3px; }
-
-  /* CARD INFO */
-  .card-info {
-    padding: 12px 14px 14px;
-  }
-  .card-title {
-    font-size: 0.92rem;
-    font-weight: 600;
-    line-height: 1.4;
-    color: var(--text);
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    margin-bottom: 6px;
-  }
-  .card-meta {
-    font-size: 0.78rem;
-    color: var(--muted);
-    display: flex; gap: 8px; align-items: center;
-  }
-  .card-dot { font-size: 0.5rem; }
-
-  /* EMPTY STATE */
-  .empty-state {
-    grid-column: 1/-1;
-    text-align: center;
-    padding: 80px 20px;
-    color: var(--muted);
-  }
-  .empty-state svg { width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.4; }
-  .empty-state p { font-size: 1.1rem; }
-
-  /* SKELETON */
-  .skeleton { animation: shimmer 1.5s infinite; }
-  .skeleton-card {
-    background: var(--surface);
-    border-radius: var(--radius);
-    overflow: hidden;
-    border: 1px solid var(--border);
-  }
-  .skel-thumb { aspect-ratio: 16/9; background: var(--surface2); }
-  .skel-body { padding: 12px 14px 14px; }
-  .skel-line { height: 12px; background: var(--surface2); border-radius: 4px; margin-bottom: 8px; }
-  .skel-line.w80 { width: 80%; }
-  .skel-line.w50 { width: 50%; }
-  @keyframes shimmer {
-    0%,100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
-
-  /* ===== OVERLAY ===== */
-  #video-overlay {
-    display: none;
-    position: fixed; inset: 0; z-index: 9999;
-    overflow: hidden;
-  }
-  #video-overlay.active { display: block; }
-
-  /* GIF background - blurred */
-  #overlay-bg {
-    position: absolute; inset: 0;
-    background-size: cover;
-    background-position: center;
-    filter: blur(18px) brightness(0.35) saturate(1.5);
-    transform: scale(1.1);
-    transition: background-image 0.3s;
-  }
-
-  /* Dark vignette */
-  #overlay-bg::after {
-    content:'';
-    position: absolute; inset: 0;
-    background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 100%);
-  }
-
-  /* Overlay content */
-  #overlay-content {
-    position: relative; z-index: 2;
-    width: 100%; height: 100%;
-    display: flex; align-items: center; justify-content: center;
-    flex-direction: column;
-    gap: 16px;
-    cursor: pointer;
-  }
-
-  /* GIF "player" box */
-  #gif-player-box {
-    position: relative;
-    width: min(600px, 90vw);
-    aspect-ratio: 16/9;
-    border-radius: 16px;
-    overflow: hidden;
-    border: 2px solid rgba(255,255,255,0.15);
-    box-shadow: 0 20px 80px rgba(0,0,0,0.8);
-    cursor: pointer;
-  }
-  #gif-player-box img {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-
-  /* Blur overlay on top of gif */
-  #gif-blur-mask {
-    position: absolute; inset: 0;
-    backdrop-filter: blur(6px);
-    background: rgba(0,0,0,0.35);
-    display: flex; align-items: center; justify-content: center;
-    flex-direction: column;
-    gap: 12px;
-    transition: backdrop-filter 0.3s;
-  }
-
-  /* "Video playing" pulse */
-  .pulse-ring {
-    position: absolute;
-    width: 80px; height: 80px;
-    border-radius: 50%;
-    border: 3px solid var(--accent);
-    animation: pulseRing 1.8s ease-out infinite;
-  }
-  .pulse-ring:nth-child(2) { animation-delay: 0.6s; }
-  .pulse-ring:nth-child(3) { animation-delay: 1.2s; }
-  @keyframes pulseRing {
-    0% { transform: scale(0.5); opacity: 1; }
-    100% { transform: scale(2.5); opacity: 0; }
-  }
-
-  .overlay-play-center {
-    position: relative; z-index: 1;
-    width: 68px; height: 68px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 0 40px var(--accent)88;
-  }
-  .overlay-play-center svg { width: 28px; height: 28px; fill: white; margin-left: 4px; }
-
-  /* Time display */
-  #overlay-time {
-    position: absolute;
-    bottom: 12px; right: 14px;
-    background: rgba(0,0,0,0.85);
-    color: #fff;
-    font-size: 0.9rem;
-    font-weight: 700;
-    padding: 4px 10px;
-    border-radius: 6px;
-    letter-spacing: 1px;
-    font-family: monospace;
-  }
-
-  /* "Click to watch" label */
-  #overlay-cta {
-    color: rgba(255,255,255,0.8);
-    font-size: 0.85rem;
-    font-weight: 500;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    animation: fadeUpDown 2s ease-in-out infinite;
-  }
-  @keyframes fadeUpDown {
-    0%,100% { opacity: 0.6; transform: translateY(0); }
-    50% { opacity: 1; transform: translateY(-4px); }
-  }
-
-  /* Close button */
-  #overlay-close {
-    position: absolute;
-    top: 16px; right: 16px;
-    width: 40px; height: 40px;
-    background: rgba(0,0,0,0.6);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    color: white;
-    font-size: 1.2rem;
-    z-index: 10;
-    transition: background 0.2s;
-  }
-  #overlay-close:hover { background: var(--accent); }
-
-  /* FOOTER */
-  footer {
-    text-align: center;
-    padding: 24px;
-    color: var(--muted);
-    font-size: 0.8rem;
-    border-top: 1px solid var(--border);
-  }
-
-  /* RESPONSIVE */
-  @media (max-width: 640px) {
-    .video-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-    nav { padding: 0 12px; gap: 8px; }
-    .nav-search { max-width: 160px; padding: 6px 12px; font-size: 0.82rem; }
-    .nav-logo { font-size: 1.4rem; }
-    main { padding: 16px 12px 40px; }
-  }
-  @media (max-width: 380px) {
-    .video-grid { grid-template-columns: 1fr; }
-  }
-</style>
+        /* Modal & Ads */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center;
+        }
+        .modal-content { background: var(--card-bg); padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; text-align: center; }
+        .close-btn { background: var(--accent-color); color: white; border: none; padding: 8px 16px; margin-top: 15px; border-radius: 4px; cursor: pointer; width: 100%; }
+        
+        select, input { width: 100%; padding: 10px; background: #334155; border: none; color: white; border-radius: 4px; margin-bottom: 10px; }
+    </style>
 </head>
-<body class="theme-red">
+<body>
 
-<!-- Firebase SDK -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-// ===== FIREBASE CONFIG - আপনার config এখানে দিন =====
-const firebaseConfig = {
-  apiKey: "AIzaSyA1IbC8fT2-4vACYO1bkgE644x8neA3YLg",
-  authDomain: "viral-602ed.firebaseapp.com",
-  projectId: "viral-602ed",
-  storageBucket: "viral-602ed.firebasestorage.app",
-  messagingSenderId: "639437508621",
-  appId: "1:639437508621:web:b2cdccfa40cf35ffcf8544",
-  measurementId: "G-9L466VDEGB"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-// Helper: video URL → GIF via tenor/giphy fallback or use thumb as GIF
-function getGifFromVideo(videoUrl, thumb) {
-  // Admin can provide a direct GIF url, otherwise we create one from the thumb
-  // If videoUrl ends in .gif we use it directly
-  if (videoUrl && videoUrl.match(/\.gif($|\?)/i)) return videoUrl;
-  // Fallback: use thumb as animated bg
-  return thumb || '';
-}
-
-// Format seconds → mm:ss
-function fmtTime(sec) {
-  if (!sec && sec !== 0) return '';
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${s.toString().padStart(2,'0')}`;
-}
-
-// ---- SITE CONFIG ----
-onValue(ref(db, 'config'), (snap) => {
-  const cfg = snap.val() || {};
-
-  // Site title
-  const title = cfg.siteName || 'VideoHub';
-  document.title = title;
-  document.getElementById('site-title').textContent = title;
-  document.getElementById('nav-logo-text').textContent = title;
-
-  // Theme
-  document.body.className = 'theme-' + (cfg.theme || 'red');
-
-  // Direct Link
-  window._directLink = cfg.directLink || '#';
-
-  // Banner Ad
-  const bannerZone = document.getElementById('banner-ad-zone');
-  if (cfg.bannerAd) {
-    bannerZone.innerHTML = cfg.bannerAd;
-    bannerZone.style.padding = '8px 0';
-    bannerZone.style.minHeight = '60px';
-  } else {
-    bannerZone.innerHTML = '';
-    bannerZone.style.minHeight = '0';
-    bannerZone.style.padding = '0';
-  }
-});
-
-// ---- VIDEOS ----
-onValue(ref(db, 'videos'), (snap) => {
-  const grid = document.getElementById('video-grid');
-  grid.innerHTML = '';
-  const val = snap.val();
-
-  if (!val) {
-    grid.innerHTML = `<div class="empty-state">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M15 10l4.553-2.277A1 1 0 0121 8.72v6.56a1 1 0 01-1.447.897L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
-      </svg>
-      <p>এখনো কোনো ভিডিও নেই</p>
-    </div>`;
-    return;
-  }
-
-  const videos = Object.entries(val).reverse(); // newest first
-  window._searchData = videos;
-
-  renderVideos(videos);
-});
-
-function renderVideos(videos) {
-  const grid = document.getElementById('video-grid');
-  grid.innerHTML = '';
-
-  if (!videos.length) {
-    grid.innerHTML = `<div class="empty-state"><p>কোনো ফলাফল পাওয়া যায়নি</p></div>`;
-    return;
-  }
-
-  videos.forEach(([id, v]) => {
-    const gifSrc = getGifFromVideo(v.videoLink, v.thumbnail);
-    const timeStr = v.duration ? fmtTime(parseInt(v.duration)) : '';
-
-    const card = document.createElement('div');
-    card.className = 'video-card';
-    card.innerHTML = `
-      <div class="thumb-wrap">
-        <img src="${v.thumbnail || 'https://via.placeholder.com/480x270/13131a/7a7a9a?text=Video'}"
-             alt="${v.title || ''}" loading="lazy"
-             onerror="this.src='https://via.placeholder.com/480x270/13131a/7a7a9a?text=No+Thumb'">
-        ${timeStr ? `<div class="time-badge">${timeStr}</div>` : ''}
-        <div class="play-btn">
-          <div class="play-icon">
-            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-          </div>
+    <header>
+        <div class="logo">🎥 VideoFlix</div>
+        <div>
+            <span id="vipBadge" class="badge-vip">⭐ VIP User</span>
+            <button class="sub-btn" id="subHeaderBtn" onclick="openSubscription()">সাবস্ক্রিপশন নিন</button>
         </div>
-      </div>
-      <div class="card-info">
-        <div class="card-title">${v.title || 'Untitled'}</div>
-        <div class="card-meta">
-          <span>VideoHub</span>
-          ${timeStr ? `<span class="card-dot">●</span><span>${timeStr}</span>` : ''}
-        </div>
-      </div>
-    `;
+    </header>
 
-    card.addEventListener('click', () => {
-      openOverlay({ ...v, gifSrc, timeStr });
-    });
-
-    grid.appendChild(card);
-  });
-}
-
-// ---- OVERLAY ----
-function openOverlay(v) {
-  const overlay = document.getElementById('video-overlay');
-  const bg = document.getElementById('overlay-bg');
-  const gifImg = document.getElementById('gif-img');
-  const timeEl = document.getElementById('overlay-time');
-
-  bg.style.backgroundImage = `url('${v.gifSrc || v.thumbnail}')`;
-  gifImg.src = v.gifSrc || v.thumbnail || '';
-  timeEl.textContent = v.timeStr || '';
-  timeEl.style.display = v.timeStr ? 'block' : 'none';
-
-  overlay.classList.add('active');
-  document.body.style.overflow = 'hidden';
-}
-
-document.getElementById('overlay-content').addEventListener('click', (e) => {
-  if (e.target.closest('#overlay-close')) return;
-  // Open direct link
-  const link = window._directLink || '#';
-  if (link && link !== '#') {
-    window.open(link, '_blank', 'noopener');
-  }
-});
-
-document.getElementById('overlay-close').addEventListener('click', () => {
-  document.getElementById('video-overlay').classList.remove('active');
-  document.body.style.overflow = '';
-  document.getElementById('gif-img').src = '';
-});
-
-// Escape key close
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    document.getElementById('video-overlay').classList.remove('active');
-    document.body.style.overflow = '';
-  }
-});
-
-// ---- SEARCH ----
-document.getElementById('search-input').addEventListener('input', function() {
-  const q = this.value.toLowerCase().trim();
-  if (!window._searchData) return;
-  if (!q) { renderVideos(window._searchData); return; }
-  const filtered = window._searchData.filter(([,v]) =>
-    (v.title || '').toLowerCase().includes(q)
-  );
-  renderVideos(filtered);
-});
-
-</script>
-
-<!-- NAV -->
-<nav>
-  <div class="nav-logo" id="nav-logo-text">VideoHub</div>
-  <input class="nav-search" type="search" id="search-input" placeholder="ভিডিও খুঁজুন...">
-</nav>
-
-<!-- BANNER AD -->
-<div id="banner-ad-zone"></div>
-
-<!-- MAIN -->
-<main>
-  <div class="section-header">
-    <h2>সব ভিডিও</h2>
-    <div class="section-line"></div>
-  </div>
-  <div class="video-grid" id="video-grid">
-    <!-- Skeleton loaders -->
-    <div class="skeleton-card skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line w80"></div><div class="skel-line w50"></div></div></div>
-    <div class="skeleton-card skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line w80"></div><div class="skel-line w50"></div></div></div>
-    <div class="skeleton-card skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line w80"></div><div class="skel-line w50"></div></div></div>
-    <div class="skeleton-card skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line w80"></div><div class="skel-line w50"></div></div></div>
-  </div>
-</main>
-
-<!-- VIDEO OVERLAY -->
-<div id="video-overlay">
-  <div id="overlay-bg"></div>
-  <div id="overlay-close">✕</div>
-  <div id="overlay-content">
-    <div id="gif-player-box">
-      <img id="gif-img" src="" alt="video">
-      <div id="gif-blur-mask">
-        <div class="pulse-ring"></div>
-        <div class="pulse-ring"></div>
-        <div class="pulse-ring"></div>
-        <div class="overlay-play-center">
-          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-        </div>
-      </div>
-      <div id="overlay-time"></div>
+    <div class="categories">
+        <div class="cat-chip active" onclick="filterCategory('all', this)">সব</div>
+        <div class="cat-chip" onclick="filterCategory('viral', this)">ভাইরাল ভিডিও</div>
+        <div class="cat-chip" onclick="filterCategory('trending', this)">ট্রেণ্ডি ভিডিও</div>
+        <div class="cat-chip" onclick="filterCategory('new', this)">নতুন ভিডিও</div>
     </div>
-    <div id="overlay-cta">👆 ট্যাপ করুন ফুল ভিডিও দেখতে</div>
-  </div>
-</div>
 
-<footer>
-  <span id="footer-name">VideoHub</span> &copy; 2024 · All rights reserved
-</footer>
+    <div class="video-container" id="videoList"></div>
 
-<script type="module">
-// Sync footer name with site title
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-</script>
+    <!-- অ্যাড পপআপ মডাল -->
+    <div class="modal" id="adModal">
+        <div class="modal-content">
+            <h3 id="adTitle">বিজ্ঞাপন চলছে...</h3>
+            <p id="adTimer" style="margin: 15px 0; color: var(--text-muted);">অপেক্ষা করুন...</p>
+            <div style="background: #334155; height: 150px; display: flex; align-items: center; justify-content: center; border-radius: 4px;">
+                <div id="dynamicAdContainer" style="color: var(--accent-color); font-weight: bold;">[AdMob / Monetag Ad Space]</div>
+            </div>
+            <button class="close-btn" id="skipAdBtn" disabled style="opacity: 0.5;">অপেক্ষা করুন...</button>
+        </div>
+    </div>
 
+    <!-- সাবস্ক্রিপশন মডাল (প্যাকেজ অপশনসহ) -->
+    <div class="modal" id="subModal">
+        <div class="modal-content" style="text-align: left;">
+            <h3 style="text-align: center; margin-bottom: 15px;">ভিআইপি সাবস্ক্রিপশন প্ল্যান</h3>
+            <p style="font-size: 14px; margin-bottom: 10px; color: var(--text-muted);">বিকাশ/নগদ (Personal): <b style="color:white;">01700-000000</b></p>
+            
+            <label style="font-size: 13px; color: var(--text-muted);">প্যাকেজ সিলেক্ট করুন:</label>
+            <select id="subPlan">
+                <option value="1">১ মাস - ১০০ টাকা</option>
+                <option value="5">৫ মাস - ৩০০ টাকা</option>
+                <option value="12">১ বছর - ১০০০ টাকা</option>
+            </select>
+
+            <input type="text" id="userPhone" placeholder="আপনার মোবাইল নম্বর (পেমেন্টকৃত)">
+            <input type="text" id="trxId" placeholder="TrxID দিন">
+            
+            <button class="sub-btn" style="width: 100%; padding: 10px;" onclick="submitPayment()">সাবমিট করুন</button>
+            <button class="close-btn" style="width: 100%; background: #475569; margin-top: 10px;" onclick="closeSubscription()">বন্ধ করুন</button>
+        </div>
+    </div>
+
+    <script>
+        const defaultVideos = [
+            { id: 1, title: "অসাধারণ একটি ভাইরাল মুহূর্ত!", category: "viral", thumb: "https://via.placeholder.com/400x200", url: "https://www.w3schools.com/html/mov_bbb.mp4" },
+            { id: 2, title: "আজকের সেরা ট্রেণ্ডি ক্লিপ", category: "trending", thumb: "https://via.placeholder.com/400x200", url: "https://www.w3schools.com/html/mov_bbb.mp4" },
+            { id: 3, title: "নতুন প্রকাশিত শর্ট ফিল্ম", category: "new", thumb: "https://via.placeholder.com/400x200", url: "https://www.w3schools.com/html/mov_bbb.mp4" }
+        ];
+
+        let videos = JSON.parse(localStorage.getItem('siteVideos')) || defaultVideos;
+
+        function checkVipStatus() {
+            const isVip = localStorage.getItem('isVip') === 'true';
+            const expiryDate = localStorage.getItem('vipExpiryDate');
+
+            if (isVip && expiryDate) {
+                const currentDate = new Date().getTime();
+                if (currentDate > parseInt(expiryDate)) {
+                    localStorage.setItem('isVip', 'false');
+                    localStorage.removeItem('vipExpiryDate');
+                    return false;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        let isVipActive = checkVipStatus();
+
+        function checkVipStatusUI() {
+            if (isVipActive) {
+                document.getElementById('vipBadge').style.display = 'inline-block';
+                document.getElementById('subHeaderBtn').innerText = 'প্রিমিয়াম সক্রিয়';
+                document.getElementById('subHeaderBtn').style.background = '#64748b';
+            }
+        }
+
+        function renderVideos(filter = 'all') {
+            const container = document.getElementById('videoList');
+            container.innerHTML = '';
+            const filtered = filter === 'all' ? videos : videos.filter(v => v.category === filter);
+            
+            filtered.forEach(video => {
+                container.innerHTML += `
+                    <div class="video-card" onclick="handleVideoClick('${video.url}')">
+                        <img src="${video.thumb}" class="thumbnail" alt="thumb">
+                        <div class="video-info">
+                            <div class="video-title">${video.title}</div>
+                            <div class="video-meta">ক্যাটাগরি: ${video.category.toUpperCase()}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function filterCategory(cat, element) {
+            document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+            element.classList.add('active');
+            renderVideos(cat);
+        }
+
+        function handleVideoClick(url) {
+            isVipActive = checkVipStatus();
+            if (isVipActive) {
+                window.location.href = url; 
+            } else {
+                startPreRollAds(url);
+            }
+        }
+
+        function startPreRollAds(url) {
+            const modal = document.getElementById('adModal');
+            modal.style.display = 'flex';
+            
+            const customAd = localStorage.getItem('customAdCode');
+            if(customAd) document.getElementById('dynamicAdContainer').innerHTML = customAd;
+
+            runSingleAd(1, "প্রথম বিজ্ঞাপন", () => {
+                runSingleAd(2, "দ্বিতীয় বিজ্ঞাপন", () => {
+                    modal.style.display = 'none';
+                    setTimeout(() => { showMidRollAd(url); }, 3000); 
+                    window.location.href = url;
+                });
+            });
+        }
+
+        function runSingleAd(adNumber, adName, onComplete) {
+            const adTitle = document.getElementById('adTitle');
+            const timerText = document.getElementById('adTimer');
+            const skipBtn = document.getElementById('skipAdBtn');
+            
+            adTitle.innerText = `${adName} (${adNumber}/২) চলছে...`;
+            let timeLeft = 4; 
+            skipBtn.disabled = true;
+            skipBtn.style.opacity = 0.5;
+            skipBtn.innerText = "অপেক্ষা করুন...";
+
+            const countdown = setInterval(() => {
+                timeLeft--;
+                timerText.innerText = `${timeLeft} সেকেন্ড বাকি...`;
+                if (timeLeft <= 0) {
+                    clearInterval(countdown);
+                    timerText.innerText = `${adName} সম্পন্ন!`;
+                    skipBtn.disabled = false;
+                    skipBtn.style.opacity = 1;
+                    skipBtn.innerText = adNumber === 1 ? "পরবর্তী বিজ্ঞাপন দেখুন" : "ভিডিও দেখুন";
+                    skipBtn.onclick = () => { onComplete(); };
+                }
+            }, 1000);
+        }
+
+        function showMidRollAd(url) {
+            const modal = document.getElementById('adModal');
+            const adTitle = document.getElementById('adTitle');
+            const timerText = document.getElementById('adTimer');
+            const skipBtn = document.getElementById('skipAdBtn');
+            
+            modal.style.display = 'flex';
+            adTitle.innerText = "⚠️ স্পন্সরড মিড-রোল বিজ্ঞাপন";
+            let timeLeft = 3;
+            skipBtn.disabled = true;
+            skipBtn.style.opacity = 0.5;
+
+            const midCountdown = setInterval(() => {
+                timeLeft--;
+                timerText.innerText = `বিজ্ঞাপন শেষ হতে ${timeLeft} সেকেন্ড...`;
+                if (timeLeft <= 0) {
+                    clearInterval(midCountdown);
+                    timerText.innerText = "বিজ্ঞাপন শেষ!";
+                    skipBtn.disabled = false;
+                    skipBtn.style.opacity = 1;
+                    skipBtn.innerText = "ভিডিওতে ফিরে যান";
+                    skipBtn.onclick = () => { modal.style.display = 'none'; };
+                }
+            }, 1000);
+        }
+
+        function openSubscription() { if(!isVipActive) document.getElementById('subModal').style.display = 'flex'; }
+        function closeSubscription() { document.getElementById('subModal').style.display = 'none'; }
+        
+        function submitPayment() {
+            const phone = document.getElementById('userPhone').value;
+            const trx = document.getElementById('trxId').value;
+            const planMonths = document.getElementById('subPlan').value; // মাসের সংখ্যা (১, ৫ বা ১২)
+
+            if(phone && trx) {
+                let pendingPayments = JSON.parse(localStorage.getItem('pendingPayments')) || [];
+                pendingPayments.push({ phone, trx, months: planMonths, date: new Date().toLocaleDateString() });
+                localStorage.setItem('pendingPayments', JSON.stringify(pendingPayments));
+
+                alert("আপনার পেমেন্ট সফলভাবে জমা হয়েছে! অ্যাডমিন যাচাই করে সাবস্ক্রিপশন সক্রিয় করে দিবেন।");
+                closeSubscription();
+            } else {
+                alert("দয়া করে আপনার ফোন নম্বর এবং ট্রানজেকশন আইডি দিন।");
+            }
+        }
+
+        checkVipStatusUI();
+        renderVideos();
+    </script>
 </body>
-  </html>
+</html>
