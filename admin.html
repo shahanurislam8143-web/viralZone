@@ -31,11 +31,10 @@
 </head>
 <body>
 
-    <h2>⚙️ VideoFlix Admin Dashboard</h2>
+    <h2>⚙️ VideoFlix Live Cloud Admin Dashboard</h2>
 
-    <!-- ১. পেমেন্ট রিকোয়েস্ট ম্যানেজমেন্ট -->
     <div class="section">
-        <h3>💰 ইউজার পেমেন্ট রিকোয়েস্ট (প্যাকেজ অনুযায়ী অ্যাপ্রুভ)</h3>
+        <h3>💰 ক্লাউড পেমেন্ট রিকোয়েস্ট</h3>
         <table>
             <thead>
                 <tr>
@@ -49,9 +48,8 @@
         </table>
     </div>
 
-    <!-- ২. ভিডিও আপলোড সিস্টেম -->
     <div class="section">
-        <h3>📤 নতুন ভিডিও আপলোড করুন</h3>
+        <h3>📤 লাইভ ভিডিও আপলোড করুন</h3>
         <input type="text" id="vidTitle" placeholder="ভিডিওর শিরোনাম">
         <select id="vidCategory">
             <option value="viral">ভাইরাল ভিডিও</option>
@@ -60,10 +58,9 @@
         </select>
         <input type="text" id="vidThumb" placeholder="থাম্বনেইল ইমেজ লিংক (URL)">
         <input type="text" id="vidUrl" placeholder="ভিডিওর লিংক (.mp4 বা স্ট্রিম লিংক)">
-        <button onclick="uploadVideo()">ভিডিও পাবলিশ করুন</button>
+        <button onclick="uploadVideo()">ক্লাউডে ভিডিও পাবলিশ করুন</button>
     </div>
 
-    <!-- ৩. পেমেন্ট নম্বর পরিবর্তন -->
     <div class="section">
         <h3>💳 পেমেন্ট নম্বর পরিবর্তন</h3>
         <label>বিকাশ/নগদ নম্বর:</label>
@@ -71,104 +68,104 @@
         <button onclick="saveSettings()">পেমেন্ট নম্বর সেভ করুন</button>
     </div>
 
-    <!-- ৪. অ্যাড কোড ম্যানেজমেন্ট -->
     <div class="section">
-        <h3>📢 অ্যাডস কোড ম্যানেজমেন্ট (AdMob / Monetag HTML Script)</h3>
+        <h3>📢 অ্যাডস কোড ম্যানেজমেন্ট</h3>
         <textarea id="adScript" rows="4" placeholder="এখানে আপনার Monetag বা AdMob Script কোড পেস্ট করুন"></textarea>
         <button onclick="saveAds()">অ্যাড কোড আপডেট করুন</button>
     </div>
 
     <script>
-        function renderPendingPayments() {
+        const DB_URL = "https://viral-602ed-default-rtdb.firebaseio.com";
+
+        async function fetchPendingPayments() {
             const tableBody = document.getElementById('adminPaymentTable');
-            tableBody.innerHTML = '';
-            let pendingPayments = JSON.parse(localStorage.getItem('pendingPayments')) || [];
+            tableBody.innerHTML = '<tr><td colspan="4">লোডিং...</td></tr>';
+            
+            try {
+                let res = await fetch(`${DB_URL}/payments.json`);
+                let data = await res.json();
 
-            if(pendingPayments.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-muted);">কোনো নতুন পেমেন্ট রিকোয়েস্ট নেই</td></tr>`;
-                return;
-            }
+                tableBody.innerHTML = '';
+                if(!data) {
+                    tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-muted);">কোনো পেমেন্ট নেই</td></tr>`;
+                    return;
+                }
 
-            pendingPayments.forEach((item, index) => {
-                let planName = item.months == '1' ? '১ মাস (১০০৳)' : (item.months == '5' ? '৫ মাস (৩০০৳)' : '১ বছর (১০০০৳)');
-                tableBody.innerHTML += `
-                    <tr>
-                        <td>${item.phone}</td>
-                        <td>${item.trx}</td>
-                        <td><b>${planName}</b></td>
-                        <td>
-                            <button onclick="approvePayment(${index}, '${item.phone}', ${item.months})">অ্যাপ্রুভ</button>
-                            <button class="danger" onclick="cancelPayment(${index})">ক্যান্সেল</button>
-                        </td>
-                    </tr>
-                `;
-            });
+                Object.keys(data).forEach(key => {
+                    let item = data[key];
+                    let planName = item.months == '1' ? '১ মাস (১০০৳)' : (item.months == '5' ? '৫ মাস (৩০০৳)' : '১ বছর (১০০০৳)');
+                    
+                    tableBody.innerHTML += `
+                        <tr>
+                            <td>${item.phone}</td>
+                            <td>${item.trx}</td>
+                            <td><b>${planName}</b></td>
+                            <td>
+                                <button onclick="approvePayment('${item.phone}', ${item.months})">অ্যাপ্রুভ</button>
+                                <button class="danger" onclick="cancelPayment('${item.phone}')">ক্যান্সেল</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch(e) { console.log(e); }
         }
 
-        // ইউজার যে কয় মাস সিলেক্ট করেছে সেই অনুযায়ী মেয়াদ হিসাব করে সেট করা
-        function approvePayment(index, phone, months) {
-            let pendingPayments = JSON.parse(localStorage.getItem('pendingPayments')) || [];
-            
-            // মাস অনুযায়ী মিলিসেকেন্ড হিসাব (৩০ দিন = ১ মাস ধরে)
+        async function approvePayment(phone, months) {
             const totalDays = parseInt(months) * 30;
             const expiryTimestamp = new Date().getTime() + (totalDays * 24 * 60 * 60 * 1000);
             
-            localStorage.setItem('isVip', 'true');
-            localStorage.setItem('vipExpiryDate', expiryTimestamp);
-            localStorage.setItem('vipUserPhone', phone);
+            await fetch(`${DB_URL}/approved_users/${phone}.json`, {
+                method: 'PUT',
+                body: JSON.stringify({ phone, expiry: expiryTimestamp })
+            });
 
-            pendingPayments.splice(index, 1);
-            localStorage.setItem('pendingPayments', JSON.stringify(pendingPayments));
+            await fetch(`${DB_URL}/payments/${phone}.json`, { method: 'DELETE' });
 
-            alert(`নম্বর ${phone}-এর জন্য ${months} মাসের সাবস্ক্রিপশন সফলভাবে সক্রিয় করা হয়েছে!`);
-            renderPendingPayments();
+            alert(`নম্বর ${phone} সফলভাবে VIP হিসেবে সক্রিয় করা হয়েছে!`);
+            fetchPendingPayments();
         }
 
-        function cancelPayment(index) {
-            let pendingPayments = JSON.parse(localStorage.getItem('pendingPayments')) || [];
-            pendingPayments.splice(index, 1);
-            localStorage.setItem('pendingPayments', JSON.stringify(pendingPayments));
-            alert("পেমেন্ট রিকোয়েস্ট বাতিল করা হয়েছে।");
-            renderPendingPayments();
+        async function cancelPayment(phone) {
+            await fetch(`${DB_URL}/payments/${phone}.json`, { method: 'DELETE' });
+            alert("বাতিল করা হয়েছে।");
+            fetchPendingPayments();
         }
 
-        function uploadVideo() {
+        async function uploadVideo() {
             const title = document.getElementById('vidTitle').value;
             const category = document.getElementById('vidCategory').value;
             const thumb = document.getElementById('vidThumb').value;
             const url = document.getElementById('vidUrl').value;
 
             if(title && url) {
-                let videos = JSON.parse(localStorage.getItem('siteVideos')) || [
-                    { id: 1, title: "অসাধারণ একটি ভাইরাল মুহূর্ত!", category: "viral", thumb: "https://via.placeholder.com/400x200", url: "https://www.w3schools.com/html/mov_bbb.mp4" },
-                    { id: 2, title: "আজকের সেরা ট্রেণ্ডি ক্লিপ", category: "trending", thumb: "https://via.placeholder.com/400x200", url: "https://www.w3schools.com/html/mov_bbb.mp4" },
-                    { id: 3, title: "নতুন প্রকাশিত শর্ট ফিল্ম", category: "new", thumb: "https://via.placeholder.com/400x200", url: "https://www.w3schools.com/html/mov_bbb.mp4" }
-                ];
+                const vidId = Date.now();
+                await fetch(`${DB_URL}/videos/${vidId}.json`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ id: vidId, title, category, thumb: thumb || 'https://via.placeholder.com/400x200', url })
+                });
 
-                videos.unshift({ id: Date.now(), title, category, thumb: thumb || 'https://via.placeholder.com/400x200', url });
-                localStorage.setItem('siteVideos', JSON.stringify(videos));
-                alert("সফলভাবে নতুন ভিডিও পাবলিশ করা হয়েছে!");
+                alert("ভিডিও লাইভ পাবলিশ করা হয়েছে!");
                 document.getElementById('vidTitle').value = '';
                 document.getElementById('vidThumb').value = '';
                 document.getElementById('vidUrl').value = '';
             } else {
-                alert("দয়া করে ভিডিওর শিরোনাম এবং ভিডিও লিংক দিন।");
+                alert("শিরোনাম এবং ভিডিও লিংক দিন।");
             }
         }
 
-        function saveSettings() {
+        async function saveSettings() {
             const bkash = document.getElementById('bkashNumber').value;
-            localStorage.setItem('bkashNum', bkash);
-            alert("পেমেন্ট নম্বর আপডেট সফল হয়েছে!");
+            await fetch(`${DB_URL}/settings/bkash.json`, { method: 'PUT', body: JSON.stringify(bkash) });
+            alert("পেমেন্ট নম্বর আপডেট করা হয়েছে!");
         }
 
-        function saveAds() {
+        async function saveAds() {
             const adCode = document.getElementById('adScript').value;
-            localStorage.setItem('customAdCode', adCode);
-            alert("অ্যাড কোড সফলভাবে আপডেট করা হয়েছে!");
+            await fetch(`${DB_URL}/settings/adCode.json`, { method: 'PUT', body: JSON.stringify(adCode) });
+            alert("অ্যাড কোড আপডেট করা হয়েছে!");
         }
 
-        renderPendingPayments();
+        fetchPendingPayments();
     </script>
 </body>
 </html>
