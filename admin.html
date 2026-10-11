@@ -21,7 +21,7 @@
         .section h3 { margin-bottom: 15px; font-size: 18px; }
         
         input, textarea, select { width: 100%; padding: 10px; background: #334155; border: none; color: white; border-radius: 4px; margin-bottom: 12px; }
-        button { background: var(--success-color); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        button { background: var(--success-color); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; }
         button.danger { background: var(--accent-color); }
         
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -33,6 +33,7 @@
 
     <h2>⚙️ VideoFlix Live Cloud Admin Dashboard</h2>
 
+    <!-- ১. পেমেন্ট রিকোয়েস্ট সেকশন -->
     <div class="section">
         <h3>💰 ক্লাউড পেমেন্ট রিকোয়েস্ট</h3>
         <table>
@@ -48,6 +49,7 @@
         </table>
     </div>
 
+    <!-- ২. ভিডিও আপলোড সেকশন -->
     <div class="section">
         <h3>📤 লাইভ ভিডিও আপলোড করুন</h3>
         <input type="text" id="vidTitle" placeholder="ভিডিওর শিরোনাম">
@@ -61,22 +63,37 @@
         <button onclick="uploadVideo()">ক্লাউডে ভিডিও পাবলিশ করুন</button>
     </div>
 
+    <!-- ৩. পেমেন্ট নম্বর পরিবর্তন সেকশন -->
     <div class="section">
         <h3>💳 পেমেন্ট নম্বর পরিবর্তন</h3>
-        <label>বিকাশ/নগদ নম্বর:</label>
-        <input type="text" id="bkashNumber" value="01700-000000">
+        <label style="font-size: 13px; color: var(--text-muted);">বর্তমান বিকাশ/নগদ নম্বর:</label>
+        <input type="text" id="bkashNumber" placeholder="যেমন: 01700000000">
         <button onclick="saveSettings()">পেমেন্ট নম্বর সেভ করুন</button>
     </div>
 
+    <!-- ৪. অ্যাড কোড পরিবর্তন সেকশন -->
     <div class="section">
         <h3>📢 অ্যাডস কোড ম্যানেজমেন্ট</h3>
-        <textarea id="adScript" rows="4" placeholder="এখানে আপনার Monetag বা AdMob Script কোড পেস্ট করুন"></textarea>
+        <textarea id="adScript" rows="5" placeholder="এখানে আপনার Monetag, Adsterra বা HTML Ad Code পেস্ট করুন"></textarea>
         <button onclick="saveAds()">অ্যাড কোড আপডেট করুন</button>
     </div>
 
     <script>
         const DB_URL = "https://viral-602ed-default-rtdb.firebaseio.com";
 
+        // বর্তমান সেটিংস (বিকাশ নম্বর ও অ্যাড কোড) ডাটাবেজ থেকে লোড করা
+        async function loadAdminSettings() {
+            try {
+                let res = await fetch(`${DB_URL}/settings.json`);
+                let settings = await res.json();
+                if(settings) {
+                    if(settings.bkash) document.getElementById('bkashNumber').value = settings.bkash;
+                    if(settings.adCode) document.getElementById('adScript').value = settings.adCode;
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        // পেন্ডিং পেমেন্ট লোড করা
         async function fetchPendingPayments() {
             const tableBody = document.getElementById('adminPaymentTable');
             tableBody.innerHTML = '<tr><td colspan="4">লোডিং...</td></tr>';
@@ -87,7 +104,7 @@
 
                 tableBody.innerHTML = '';
                 if(!data) {
-                    tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-muted);">কোনো পেমেন্ট নেই</td></tr>`;
+                    tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-muted);">কোনো নতুন পেমেন্ট রিকোয়েস্ট নেই</td></tr>`;
                     return;
                 }
 
@@ -107,7 +124,7 @@
                         </tr>
                     `;
                 });
-            } catch(e) { console.log(e); }
+            } catch(e) { console.error(e); }
         }
 
         async function approvePayment(phone, months) {
@@ -116,6 +133,7 @@
             
             await fetch(`${DB_URL}/approved_users/${phone}.json`, {
                 method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ phone, expiry: expiryTimestamp })
             });
 
@@ -127,44 +145,85 @@
 
         async function cancelPayment(phone) {
             await fetch(`${DB_URL}/payments/${phone}.json`, { method: 'DELETE' });
-            alert("বাতিল করা হয়েছে।");
+            alert("পেমেন্ট বাতিল করা হয়েছে।");
             fetchPendingPayments();
         }
 
+        // ১. ভিডিও আপলোড ফাংশন (Fixes applied)
         async function uploadVideo() {
-            const title = document.getElementById('vidTitle').value;
+            const title = document.getElementById('vidTitle').value.trim();
             const category = document.getElementById('vidCategory').value;
-            const thumb = document.getElementById('vidThumb').value;
-            const url = document.getElementById('vidUrl').value;
+            const thumb = document.getElementById('vidThumb').value.trim();
+            const url = document.getElementById('vidUrl').value.trim();
 
-            if(title && url) {
-                const vidId = Date.now();
+            if(!title || !url) {
+                alert("দয়া করে ভিডিওর শিরোনাম এবং ভিডিও লিংক অবশ্যই দিন!");
+                return;
+            }
+
+            const vidId = Date.now();
+            try {
                 await fetch(`${DB_URL}/videos/${vidId}.json`, {
                     method: 'PUT',
-                    body: JSON.stringify({ id: vidId, title, category, thumb: thumb || 'https://via.placeholder.com/400x200', url })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: vidId,
+                        title: title,
+                        category: category,
+                        thumb: thumb || 'https://via.placeholder.com/400x200',
+                        url: url
+                    })
                 });
 
-                alert("ভিডিও লাইভ পাবলিশ করা হয়েছে!");
+                alert("✅ ভিডিও ক্লাউডে সফলভাবে পাবলিশ করা হয়েছে!");
                 document.getElementById('vidTitle').value = '';
                 document.getElementById('vidThumb').value = '';
                 document.getElementById('vidUrl').value = '';
-            } else {
-                alert("শিরোনাম এবং ভিডিও লিংক দিন।");
+            } catch(e) {
+                alert("এরর: ভিডিও সেভ করা যায়নি!");
+                console.error(e);
             }
         }
 
+        // ২. পেমেন্ট নম্বর সেভ করার ফাংশন (Fixes applied)
         async function saveSettings() {
-            const bkash = document.getElementById('bkashNumber').value;
-            await fetch(`${DB_URL}/settings/bkash.json`, { method: 'PUT', body: JSON.stringify(bkash) });
-            alert("পেমেন্ট নম্বর আপডেট করা হয়েছে!");
+            const bkash = document.getElementById('bkashNumber').value.trim();
+            if(!bkash) {
+                alert("পেমেন্ট নম্বর দিন!");
+                return;
+            }
+
+            try {
+                await fetch(`${DB_URL}/settings/bkash.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bkash)
+                });
+                alert("✅ পেমেন্ট নম্বর সফলভাবে আপডেট করা হয়েছে!");
+            } catch(e) {
+                alert("এরর: পেমেন্ট নম্বর সেভ হয়নি!");
+                console.error(e);
+            }
         }
 
+        // ৩. অ্যাড কোড সেভ করার ফাংশন (Fixes applied)
         async function saveAds() {
-            const adCode = document.getElementById('adScript').value;
-            await fetch(`${DB_URL}/settings/adCode.json`, { method: 'PUT', body: JSON.stringify(adCode) });
-            alert("অ্যাড কোড আপডেট করা হয়েছে!");
+            const adCode = document.getElementById('adScript').value.trim();
+            try {
+                await fetch(`${DB_URL}/settings/adCode.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(adCode)
+                });
+                alert("✅ অ্যাড কোড সফলভাবে আপডেট করা হয়েছে!");
+            } catch(e) {
+                alert("এরর: অ্যাড কোড সেভ হয়নি!");
+                console.error(e);
+            }
         }
 
+        // পেজ লোড হলে কল হবে
+        loadAdminSettings();
         fetchPendingPayments();
     </script>
 </body>
